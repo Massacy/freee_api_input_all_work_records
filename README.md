@@ -27,12 +27,17 @@
 COMPANY_ID = 'XXXXXXX'
 EMPLOYEE_ID = 'XXXXXXX'
 ACCESS_TOKEN = 'xxxxxxxxx'
-YM = '2024-10' // 対象の年月
-DAYS = '15,16,17,18,21,22,23,24,25,28,29,30,31' // 対象の日付
 ```
 
-4. 以下コマンドを実行して、その結果をターミナルに貼り付けて実行（内容が間違っていないか要確認！）※Mac 用
+replace_info.js 内の年月、日付を変更。
 
 ```
-node --env-file=.env replace_info.js | pbcopy
+const ym = "2024-10"; // 対象に合わせて変更
+const days = [1,2,3] // 対象に合わせて変更
+```
+
+4. 以下コマンドを実行して、その結果をターミナルに貼り付けて実行（内容が間違っていないか要確認！）
+
+```
+node --env-file=.env replace_info.js
 ```
