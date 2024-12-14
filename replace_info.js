@@ -1,18 +1,32 @@
+const dayjs = require("dayjs");
+const jh = require("japanese-holidays");
 const executeTask = require("./executeTask");
 
-const ym = "2024-11"; // 対象に合わせて変更
-const days = []; // 対象に合わせて変更
-// const days = [
-//   1, 5, 6, 7, 8, 11, 12, 13, 14, 15, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29,
-// ];
-
-const generateDate = async () => {
-  for (const day of days) {
-    const day_str = ("00" + day).slice(-2);
-    const date = `${ym}-${day_str}`;
-    console.log(date);
-    await executeTask(date);
+const days = []; // 当月の平日の日付を格納する配列
+const generateDate = () => {
+  let ymd = dayjs("2024-05").startOf("month").format("YYYY-MM-DD");
+  const ymdEnd = dayjs("2024-05")
+    .add(1, "M")
+    .startOf("month")
+    .format("YYYY-MM-DD");
+  dayjs.extend(weekday);
+  while (dayjs(ymd).isBefore(dayjs(ymdEnd))) {
+    // 平日かつ祝日でない日付を配列に追加
+    if (
+      0 < dayjs(ymd).day() &&
+      dayjs(ymd).day() < 6 &&
+      !jh.isHoliday(new Date(ymd))
+    ) {
+      days.push(ymd);
+    }
+    ymd = dayjs(ymd).add(1, "day").format("YYYY-MM-DD");
   }
 };
-
 generateDate();
+
+console.log(days);
+
+for (const day of days) {
+  console.log(day);
+  await executeTask(date);
+}
