@@ -1,31 +1,55 @@
-//変数を書き換えて利用します。
-const token_url = "https://accounts.secure.freee.co.jp/public_api/token";
-const client_id = process.env.CLIENT_ID;
-const client_secret = process.env.CLIENT_SECRET;
-const refresh_token = process.env.REFRESH_TOKEN;
+const fs = require("fs");
+const path = require("path");
 
-const body = {
-  grant_type: "refresh_token",
-  client_id: client_id,
-  client_secret: client_secret,
-  refresh_token: refresh_token,
-};
+module.exports = async function getAccessToken() {
+  const tokenUrl = "https://accounts.secure.freee.co.jp/public_api/token";
+  const clientId = process.env.CLIENT_ID;
+  const clientSecret = process.env.CLIENT_SECRET;
+  const refreshToken = process.env.REFRESH_TOKEN;
 
-const options = {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify(body),
-};
+  const body = {
+    grant_type: "refresh_token",
+    client_id: clientId,
+    client_secret: clientSecret,
+    refresh_token: refreshToken,
+  };
 
-async function getAccessToken() {
-  const response = await fetch(token_url, options);
-  if (!response.ok) {
-    throw new Error(JSON.stringify(response));
+  const options = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  };
+  try {
+    const response = await fetch(tokenUrl, options);
+    if (!response.ok) {
+      throw new Error(JSON.stringify(response));
+    }
+    const result = await response.json();
+    console.log(result);
+    const { access_token, refresh_token } = result;
+    updateEnvFile(clientId, refresh_token, access_token);
+    return access_token;
+  } catch (error) {
+    console.error("Error getAccessToken: ", error);
   }
-  const result = await response.json();
-  console.log(result);
-}
+};
 
-getAccessToken();
+function updateEnvFile(clientId, refresh_token, accessToken) {
+  companyId = process.env.COMPANY_ID;
+  employeeId = process.env.EMPLOYEE_ID;
+  clientSecret = process.env.CLIENT_SECRET;
+
+  const envPath = path.resolve(__dirname, ".env");
+  const data = [
+    `CLIENT_ID=${clientId}`,
+    `COMPANY_ID=${companyId}`,
+    `EMPLOYEE_ID=${employeeId}`,
+    `CLIENT_SECRET=${clientSecret}`,
+    `REFRESH_TOKEN=${refresh_token}`,
+    `ACCESS_TOKEN=${accessToken}`,
+  ].join("\n");
+  fs.writeFileSync(envPath, data);
+  console.log("updated refresh_token and access_token");
+}

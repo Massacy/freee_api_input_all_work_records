@@ -1,8 +1,7 @@
-const employeeId = process.env.EMPLOYEE_ID;
-const companyId = process.env.COMPANY_ID;
-const accessToken = process.env.ACCESS_TOKEN;
+module.exports = async function executeReplaceInfo(date, accessToken) {
+  const employeeId = process.env.EMPLOYEE_ID;
+  const companyId = process.env.COMPANY_ID;
 
-module.exports = async function executeTask(date) {
   const url = `https://api.freee.co.jp/hr/api/v1/employees/${employeeId}/work_records/${date}`;
   const body = {
     company_id: companyId,
@@ -34,5 +33,10 @@ module.exports = async function executeTask(date) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   const result = await response.json();
-  console.log(result);
+  const message = {
+    日付: result.date,
+    勤務時間: result.work_record_segments,
+    休憩時間: result.break_records,
+  };
+  console.log(message);
 };
