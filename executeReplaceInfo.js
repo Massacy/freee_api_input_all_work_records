@@ -1,10 +1,11 @@
-module.exports = async function executeReplaceInfo(date, accessToken) {
-  const employeeId = process.env.EMPLOYEE_ID;
-  const companyId = process.env.COMPANY_ID;
+const credentialsManager = require('./credentialsManager');
 
-  const url = `https://api.freee.co.jp/hr/api/v1/employees/${employeeId}/work_records/${date}`;
+module.exports = async function executeReplaceInfo(date, accessToken, myInfoId = 1) {
+  const credentials = await credentialsManager.getCredentials(myInfoId);
+  
+  const url = `https://api.freee.co.jp/hr/api/v1/employees/${credentials.employeeId}/work_records/${date}`;
   const body = {
-    company_id: companyId,
+    company_id: credentials.companyId,
     break_records: [
       {
         clock_in_at: `${date} 12:00:00`,

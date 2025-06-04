@@ -2,6 +2,7 @@
   "dependencies": {
     "dayjs": "^1.11.13",
     "inquirer": "^8.2.5",
-    "japanese-holidays": "^1.0.10"
+    "japanese-holidays": "^1.0.10",
+    "@supabase/supabase-js": "^2.39.0"
   }
 }
