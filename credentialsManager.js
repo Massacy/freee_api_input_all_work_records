@@ -2,7 +2,13 @@ const { supabase, encrypt, decrypt } = require('./db');
 
 class CredentialsManager {
   // 認証情報を取得（my_info_idで指定）
-  async getCredentials(myInfoId = 1) {
+  async getCredentials(myInfoId) {
+    if (!myInfoId) {
+      throw new Error('myInfoId is required');
+    }
+
+    console.log(`Getting credentials for myInfoId: ${myInfoId}`);
+
     // freee_api_my_infoから基本情報を取得
     const { data: myInfo, error: myInfoError } = await supabase
       .from('freee_api_my_info')
@@ -10,9 +16,16 @@ class CredentialsManager {
       .eq('id', myInfoId)
       .single();
 
-    if (myInfoError || !myInfo) {
-      throw new Error(`My info not found: ${myInfoError?.message}`);
+    if (myInfoError) {
+      console.error('MyInfo error:', myInfoError);
+      throw new Error(`My info not found for ID ${myInfoId}: ${myInfoError.message}`);
     }
+
+    if (!myInfo) {
+      throw new Error(`My info not found for ID ${myInfoId}`);
+    }
+
+    console.log(`Found myInfo for user: ${myInfo.username}`);
 
     // freee_api_tokensから最新のトークン情報を取得
     const { data: tokenInfo, error: tokenError } = await supabase
@@ -23,9 +36,16 @@ class CredentialsManager {
       .limit(1)
       .single();
 
-    if (tokenError || !tokenInfo) {
-      throw new Error(`Token info not found: ${tokenError?.message}`);
+    if (tokenError) {
+      console.error('Token error:', tokenError);
+      throw new Error(`Token info not found for myInfoId ${myInfoId}: ${tokenError.message}`);
     }
+
+    if (!tokenInfo) {
+      throw new Error(`Token info not found for myInfoId ${myInfoId}`);
+    }
+
+    console.log(`Found token info created at: ${tokenInfo.created_at}`);
 
     return {
       clientId: myInfo.client_id,
@@ -112,12 +132,7 @@ class CredentialsManager {
         client_id,
         company_id,
         employee_id,
-        created_at,
-        freee_api_tokens!inner(
-          id,
-          created_at,
-          access_token_expires_in
-        )
+        created_at
       `)
       .order('created_at', { ascending: false });
 
@@ -125,7 +140,7 @@ class CredentialsManager {
       throw new Error(`Failed to list credentials: ${error.message}`);
     }
 
-    return data;
+    return data || [];
   }
 }
 

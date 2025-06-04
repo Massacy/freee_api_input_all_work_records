@@ -1,19 +1,13 @@
 const credentialsManager = require('./credentialsManager');
 
-module.exports = async function getAccessToken(myInfoId = null) {
+module.exports = async function getAccessToken(myInfoId) {
+  if (!myInfoId) {
+    throw new Error('myInfoId is required');
+  }
+
   const tokenUrl = "https://accounts.secure.freee.co.jp/public_api/token";
   
   try {
-    // myInfoIdが指定されていない場合は最新のものを取得
-    if (myInfoId === null) {
-      const list = await credentialsManager.listCredentials();
-      if (list.length === 0) {
-        throw new Error('No credentials found. Please run setupCredentials.js first.');
-      }
-      myInfoId = list[0].id;
-      console.log(`Using latest credential ID: ${myInfoId}`);
-    }
-    
     const credentials = await credentialsManager.getCredentials(myInfoId);
     
     // アクセストークンの有効期限をチェック

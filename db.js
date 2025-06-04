@@ -1,12 +1,31 @@
+require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 
-// Supabaseクライアントの初期化
+// 環境変数の検証
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+
+if (!supabaseUrl) {
+  throw new Error('SUPABASE_URL environment variable is required. Please check your .env file.');
+}
+
+if (!supabaseKey) {
+  throw new Error('SUPABASE_ANON_KEY environment variable is required. Please check your .env file.');
+}
+
+if (!ENCRYPTION_KEY) {
+  throw new Error('ENCRYPTION_KEY environment variable is required. Please check your .env file.');
+}
+
+if (ENCRYPTION_KEY.length !== 32) {
+  throw new Error('ENCRYPTION_KEY must be exactly 32 characters long.');
+}
+
+// Supabaseクライアントの初期化
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 const ALGORITHM = 'aes-256-cbc';
 
 function encrypt(text) {

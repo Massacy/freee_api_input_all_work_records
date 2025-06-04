@@ -1,6 +1,10 @@
 const credentialsManager = require('./credentialsManager');
 
-module.exports = async function executeReplaceInfo(date, accessToken, myInfoId = 1) {
+module.exports = async function executeReplaceInfo(date, accessToken, myInfoId) {
+  if (!myInfoId) {
+    throw new Error('myInfoId is required');
+  }
+  
   const credentials = await credentialsManager.getCredentials(myInfoId);
   
   const url = `https://api.freee.co.jp/hr/api/v1/employees/${credentials.employeeId}/work_records/${date}`;
