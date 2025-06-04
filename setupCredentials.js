@@ -12,14 +12,17 @@ async function setupInitialCredentials() {
       clientSecret: 'secret_abc123',  // freeeのCLIENT_SECRET
       companyId: '123456',            // freeeのCOMPANY_ID
       employeeId: '789012',           // freeeのEMPLOYEE_ID
-      refreshToken: 'refresh_token_example' // freeeのREFRESH_TOKEN
+      refreshToken: 'refresh_token_example', // freeeのREFRESH_TOKEN
+      accessToken: 'access_token_example', // freeeのACCESS_TOKEN
+      expiresIn: 21600
     };
 
     console.log('認証情報をSupabaseに保存中...');
     const result = await credentialsManager.saveCredentials(credentials);
     console.log('✅ 認証情報の保存が完了しました!');
-    console.log('My Info ID:', result.myInfo.id);
-    console.log('Token ID:', result.tokenInfo.id);
+    console.log('ユーザー名:', credentials.username);
+    console.log('リフレッシュトークン:', credentials.refreshToken);
+    console.log('アクセストークン:', credentials.accessToken || '(未取得)');
     
     console.log('\n🔐 セキュリティ情報:');
     console.log('- client_secretとrefresh_tokenは暗号化されて保存されました');
