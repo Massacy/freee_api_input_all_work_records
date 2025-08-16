@@ -1,18 +1,43 @@
 require('dotenv').config();
-const { createClient } = require('@supabase/supabase-js');
+const { Pool } = require('pg');
 const crypto = require('crypto');
 
 // 環境変数の検証
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const DATABASE_URL = process.env.DATABASE_URL;
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 
-if (!supabaseUrl) {
-  throw new Error('SUPABASE_URL environment variable is required. Please check your .env file.');
-}
+// データベース接続設定
+let dbConfig;
 
-if (!supabaseKey) {
-  throw new Error('SUPABASE_ANON_KEY environment variable is required. Please check your .env file.');
+if (DATABASE_URL) {
+  // DATABASE_URLを使用した接続
+  dbConfig = {
+    connectionString: DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false // Neonの場合は通常これが必要
+    }
+  };
+} else {
+  // 個別設定を使用した接続
+  const DB_HOST = process.env.DB_HOST;
+  const DB_PORT = process.env.DB_PORT || 5432;
+  const DB_NAME = process.env.DB_NAME;
+  const DB_USER = process.env.DB_USER;
+  const DB_PASSWORD = process.env.DB_PASSWORD;
+  const DB_SSL = process.env.DB_SSL || 'require';
+
+  if (!DB_HOST || !DB_NAME || !DB_USER || !DB_PASSWORD) {
+    throw new Error('Database configuration is incomplete. Please check your .env file.');
+  }
+
+  dbConfig = {
+    host: DB_HOST,
+    port: parseInt(DB_PORT),
+    database: DB_NAME,
+    user: DB_USER,
+    password: DB_PASSWORD,
+    ssl: DB_SSL === 'require' ? { rejectUnauthorized: false } : false
+  };
 }
 
 if (!ENCRYPTION_KEY) {
@@ -23,8 +48,18 @@ if (ENCRYPTION_KEY.length !== 32) {
   throw new Error('ENCRYPTION_KEY must be exactly 32 characters long.');
 }
 
-// Supabaseクライアントの初期化
-const supabase = createClient(supabaseUrl, supabaseKey);
+// PostgreSQL接続プールの初期化
+const pool = new Pool(dbConfig);
+
+// 接続テスト
+pool.on('connect', (client) => {
+  console.log('Connected to Neon PostgreSQL database');
+});
+
+pool.on('error', (err, client) => {
+  console.error('Unexpected error on idle client', err);
+  process.exit(-1);
+});
 
 const ALGORITHM = 'aes-256-cbc';
 
@@ -61,4 +96,15 @@ function decrypt(encryptedText) {
   }
 }
 
-module.exports = { supabase, encrypt, decrypt };
+// データベースクエリのヘルパー関数
+async function query(text, params) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(text, params);
+    return result;
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = { pool, query, encrypt, decrypt };

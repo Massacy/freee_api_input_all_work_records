@@ -1,146 +1,162 @@
-const { supabase, encrypt, decrypt } = require('./db');
+const { query, encrypt, decrypt } = require('./db');
 
 class CredentialsManager {
-  // 認証情報を取得（my_info_idで指定）
-  async getCredentials(myInfoId) {
-    if (!myInfoId) {
-      throw new Error('myInfoId is required');
+  // 認証情報を取得（user_info_idで指定）
+  async getCredentials(userInfoId) {
+    if (!userInfoId) {
+      throw new Error('userInfoId is required');
     }
 
-    console.log(`Getting credentials for myInfoId: ${myInfoId}`);
+    console.log(`Getting credentials for userInfoId: ${userInfoId}`);
 
-    // freee_api_my_infoから基本情報を取得
-    const { data: myInfo, error: myInfoError } = await supabase
-      .from('freee_api_my_info')
-      .select('*')
-      .eq('id', myInfoId)
-      .single();
+    // freee_api_user_infoから基本情報を取得
+    const userInfoResult = await query(
+      'SELECT * FROM freee_api_user_info WHERE id = $1',
+      [userInfoId]
+    );
 
-    if (myInfoError) {
-      console.error('MyInfo error:', myInfoError);
-      throw new Error(`My info not found for ID ${myInfoId}: ${myInfoError.message}`);
+    if (userInfoResult.rows.length === 0) {
+      throw new Error(`user info not found for ID ${userInfoId}`);
     }
 
-    if (!myInfo) {
-      throw new Error(`My info not found for ID ${myInfoId}`);
-    }
-
-    console.log(`Found myInfo for user: ${myInfo.username}`);
+    const userInfo = userInfoResult.rows[0];
+    console.log(`Found userInfo for user: ${userInfo.username}`);
 
     // freee_api_tokensから最新のトークン情報を取得
-    const { data: tokenInfo, error: tokenError } = await supabase
-      .from('freee_api_tokens')
-      .select('*')
-      .eq('my_info_id', myInfoId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    const tokenResult = await query(
+      'SELECT *, created_at AT TIME ZONE \'UTC\' as created_at_utc FROM freee_api_tokens WHERE user_info_id = $1 ORDER BY created_at DESC LIMIT 1',
+      [userInfoId]
+    );
 
-    if (tokenError) {
-      console.error('Token error:', tokenError);
-      throw new Error(`Token info not found for myInfoId ${myInfoId}: ${tokenError.message}`);
+    if (tokenResult.rows.length === 0) {
+      throw new Error(`Token info not found for userInfoId ${userInfoId}`);
     }
 
-    if (!tokenInfo) {
-      throw new Error(`Token info not found for myInfoId ${myInfoId}`);
-    }
-
+    const tokenInfo = tokenResult.rows[0];
     console.log(`Found token info created at: ${tokenInfo.created_at}`);
+    console.log(`UTC time: ${tokenInfo.created_at_utc}`);
 
     return {
-      clientId: myInfo.client_id,
-      clientSecret: decrypt(myInfo.client_secret),
-      companyId: myInfo.company_id,
-      employeeId: myInfo.employee_id,
+      clientId: userInfo.client_id,
+      clientSecret: decrypt(userInfo.client_secret),
+      companyId: userInfo.company_id,
+      employeeId: userInfo.employee_id,
       refreshToken: decrypt(tokenInfo.refresh_token),
       accessToken: decrypt(tokenInfo.access_token),
       accessTokenExpiresIn: tokenInfo.access_token_expires_in,
-      tokenCreatedAt: new Date(tokenInfo.created_at)
+      tokenCreatedAt: new Date(tokenInfo.created_at_utc) // UTC時刻を明示的に使用
     };
   }
 
   // アクセストークンが有効かチェック
-  isAccessTokenValid(tokenCreatedAt, expiresIn) {
+  isAccessTokenValid(tokenCreatedAt, expiresIn, verbose = false) {
+    // UTC時刻で正確な比較を行う
     const now = new Date();
-    const expiresAt = new Date(tokenCreatedAt.getTime() + (expiresIn * 1000));
-    return now < expiresAt;
+    const createdAt = new Date(tokenCreatedAt);
+    
+    // 期限切れ時刻を計算（ミリ秒で計算）
+    const expiresAt = new Date(createdAt.getTime() + (expiresIn * 1000));
+    
+    // 有効性判定（少し余裕を持たせる）
+    const bufferSeconds = 60; // 1分のバッファ
+    const expiresAtWithBuffer = new Date(expiresAt.getTime() - (bufferSeconds * 1000));
+    const isValid = now < expiresAtWithBuffer;
+    
+    if (verbose) {
+      console.log('Token validity check:');
+      console.log('  Current time (UTC):', now.toISOString());
+      console.log('  Token created (UTC):', createdAt.toISOString());
+      console.log('  Expires in (seconds):', expiresIn);
+      console.log('  Token expires (UTC):', expiresAt.toISOString());
+      console.log('  Buffer time (UTC):', expiresAtWithBuffer.toISOString());
+      console.log('  Is valid:', isValid);
+      
+      if (!isValid) {
+        const expiredAgo = Math.floor((now.getTime() - expiresAt.getTime()) / 1000);
+        if (expiredAgo > 0) {
+          console.log(`  Expired ${expiredAgo} seconds ago`);
+        } else {
+          console.log(`  Will expire in ${Math.abs(expiredAgo)} seconds`);
+        }
+      }
+    }
+    
+    return isValid;
   }
 
   // 新しいトークンを保存
-  async updateTokens(myInfoId, accessToken, refreshToken, expiresIn) {
-    const { data, error } = await supabase
-      .from('freee_api_tokens')
-      .insert([{
-        my_info_id: myInfoId,
-        refresh_token: encrypt(refreshToken),
-        access_token: encrypt(accessToken),
-        access_token_expires_in: expiresIn
-      }])
-      .select();
+  async updateTokens(userInfoId, accessToken, refreshToken, expiresIn) {
+    const result = await query(
+      `INSERT INTO freee_api_tokens (user_info_id, refresh_token, access_token, access_token_expires_in, created_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       RETURNING *`,
+      [userInfoId, encrypt(refreshToken), encrypt(accessToken), expiresIn]
+    );
 
-    if (error) {
-      throw new Error(`Failed to update tokens: ${error.message}`);
+    if (result.rows.length === 0) {
+      throw new Error('Failed to update tokens');
     }
 
-    return data[0];
+    return result.rows[0];
   }
 
   // 初期認証情報を保存
   async saveCredentials(credentials) {
-    // まずfreee_api_my_infoに保存
-    const { data: myInfo, error: myInfoError } = await supabase
-      .from('freee_api_my_info')
-      .upsert([{
-        username: credentials.username,
-        client_id: credentials.clientId,
-        client_secret: encrypt(credentials.clientSecret),
-        company_id: credentials.companyId,
-        employee_id: credentials.employeeId
-      }])
-      .select()
-      .single();
+    // まずfreee_api_user_infoに保存（upsert処理）
+    const userInfoResult = await query(
+      `INSERT INTO freee_api_user_info (username, client_id, client_secret, company_id, employee_id, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+       ON CONFLICT (username) DO UPDATE SET
+         client_id = EXCLUDED.client_id,
+         client_secret = EXCLUDED.client_secret,
+         company_id = EXCLUDED.company_id,
+         employee_id = EXCLUDED.employee_id,
+         updated_at = NOW()
+       RETURNING *`,
+      [
+        credentials.username,
+        credentials.clientId,
+        encrypt(credentials.clientSecret),
+        credentials.companyId,
+        credentials.employeeId
+      ]
+    );
 
-    if (myInfoError) {
-      throw new Error(`Failed to save my info: ${myInfoError.message}`);
+    if (userInfoResult.rows.length === 0) {
+      throw new Error('Failed to save user info');
     }
+
+    const userInfo = userInfoResult.rows[0];
 
     // 次にfreee_api_tokensに保存
-    const { data: tokenInfo, error: tokenError } = await supabase
-      .from('freee_api_tokens')
-      .insert([{
-        my_info_id: myInfo.id,
-        refresh_token: encrypt(credentials.refreshToken),
-        access_token: encrypt(credentials.accessToken || ''),
-        access_token_expires_in: credentials.expiresIn || 0
-      }])
-      .select();
+    const tokenResult = await query(
+      `INSERT INTO freee_api_tokens (user_info_id, refresh_token, access_token, access_token_expires_in, created_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       RETURNING *`,
+      [
+        userInfo.id,
+        encrypt(credentials.refreshToken),
+        encrypt(credentials.accessToken || ''),
+        credentials.expiresIn || 0
+      ]
+    );
 
-    if (tokenError) {
-      throw new Error(`Failed to save token info: ${tokenError.message}`);
+    if (tokenResult.rows.length === 0) {
+      throw new Error('Failed to save token info');
     }
 
-    return { myInfo, tokenInfo: tokenInfo[0] };
+    return { userInfo, tokenInfo: tokenResult.rows[0] };
   }
 
   // 利用可能な認証情報一覧を取得
   async listCredentials() {
-    const { data, error } = await supabase
-      .from('freee_api_my_info')
-      .select(`
-        id,
-        username,
-        client_id,
-        company_id,
-        employee_id,
-        created_at
-      `)
-      .order('created_at', { ascending: false });
+    const result = await query(
+      `SELECT id, username, client_id, company_id, employee_id, created_at
+       FROM freee_api_user_info
+       ORDER BY created_at DESC`
+    );
 
-    if (error) {
-      throw new Error(`Failed to list credentials: ${error.message}`);
-    }
-
-    return data || [];
+    return result.rows || [];
   }
 }
 
