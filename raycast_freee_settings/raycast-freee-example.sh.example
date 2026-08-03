@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Required parameters:
+# @raycast.schemaVersion 1
+# @raycast.title freee 勤怠入力
+# @raycast.mode compact
+# @raycast.packageName freee-tools
+
+# Optional parameters:
+# @raycast.icon 📅
+# @raycast.description freee APIで勤怠時間を一括入力
+# @raycast.author your_name
+
+# Change to the project directory
+PROJECT_DIR="/path/to/freee_api_input_all_work_records"
+
+# Check if directory exists
+if [ ! -d "$PROJECT_DIR" ]; then
+    echo "❌ Project directory not found: $PROJECT_DIR"
+    exit 1
+fi
+
+cd "$PROJECT_DIR"
+
+# Check if node_modules exists
+if [ ! -d "node_modules" ]; then
+    echo "📦 Installing dependencies..."
+    npm install
+fi
+
+# Run the script in a new terminal window
+osascript -e "
+tell application \"Terminal\"
+    do script \"cd '$PROJECT_DIR' && echo '🚀 freee 勤怠入力を開始します...' && node index.js\"
+    activate
+end tell
+"
+
+echo "✅ freee 勤怠入力を新しいTerminalウィンドウで開始しました"

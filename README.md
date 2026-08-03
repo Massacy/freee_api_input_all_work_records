@@ -190,37 +190,30 @@ npm run validate-credentials  # freee API認証テスト（安全版）
 
 ## Raycastから実行する（オプション）
 
-`raycast_freee_settings/raycast-freee-improved.sh` をRaycastのScript Commandとして登録することで、Raycastから直接起動できます。
+`raycast_freee_settings/raycast-freee-example.sh.example` を元に個人用スクリプトを作成することで、Raycastから直接起動できます。
 
 ### セットアップ手順
 
-1. **RaycastにScript Commandsディレクトリを登録**
+1. **個人用スクリプトを作成**
+
+   `raycast-freee-example.sh.example` をコピーし、`PROJECT_DIR` をこのリポジトリをクローンした絶対パスに書き換えてください。
+
+   ```bash
+   cp raycast_freee_settings/raycast-freee-example.sh.example raycast_freee_settings/raycast-freee-improved.sh
+   # raycast-freee-improved.sh の PROJECT_DIR を編集
+   # 例: PROJECT_DIR="/Users/yourname/path/to/freee_api_input_all_work_records"
+   ```
+
+2. **スクリプトに実行権限を付与**
+
+   ```bash
+   chmod +x raycast_freee_settings/raycast-freee-improved.sh
+   ```
+
+3. **RaycastにScript Commandsディレクトリを登録**
 
    Raycastの環境設定 → Extensions → `+` ボタン → Add Script Directory を選択し、このリポジトリ内の `raycast_freee_settings` ディレクトリを指定します。
 
-2. **スクリプト内のプロジェクトパスを自分の環境に合わせて編集**
-
-   `raycast-freee-improved.sh` の `PROJECT_DIR` をこのリポジトリをクローンした実際のパスに変更してください。
-
-   ```bash
-   PROJECT_DIR="/path/to/freee_api_input_all_work_records"
-   ```
-
-3. **スクリプトに実行権限を付与**
-
-   ```bash
-   chmod +x raycast-freee-improved.sh
-   ```
-
 4. **Raycastで「freee 勤怠入力」を検索して実行**
 
-   RaycastでScript Commandsが読み込まれると「freee 勤怠入力」として表示されます。実行すると新しいTerminalウィンドウが開き、対話式の入力フローが始まります。
-
-### シェルエイリアスを使う場合
-
-`raycast_freee_settings/shell-aliases.txt` に記載のエイリアスを `.zshrc` や `.bashrc` に追記することで、ターミナルから短いコマンドで起動することもできます。パスは自分の環境に合わせて変更してください。
-
-```bash
-alias freee="cd /path/to/freee_api_input_all_work_records && node index.js"
-alias 勤怠="cd /path/to/freee_api_input_all_work_records && node index.js"
-```
+   `raycast-freee-improved.sh` がScript Commandとして読み込まれ「freee 勤怠入力」として表示されます。実行すると新しいTerminalウィンドウが開き、対話式の入力フローが始まります。

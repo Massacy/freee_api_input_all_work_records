@@ -7,7 +7,8 @@ node_modules/
 # Sample data
 sample_data/
 archive/
-raycast_freee_settings/
+raycast_freee_settings/*
+!raycast_freee_settings/raycast-freee-example.sh.example
 
 # Logs
 *.log
