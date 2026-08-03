@@ -37,10 +37,7 @@ module.exports = async function getAccessToken(userInfoId) {
     };
 
     const response = await fetch(tokenUrl, options);
-    
-    console.log('Response status:', response.status);
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-    
+
     if (!response.ok) {
       // エラーレスポンスの詳細を取得
       let errorDetails;

@@ -21,7 +21,7 @@ class CredentialsManager {
 
     // freee_api_tokensから最新のトークン情報を取得
     const tokenResult = await query(
-      'SELECT *, created_at AT TIME ZONE \'UTC\' as created_at_utc FROM freee_api_tokens WHERE user_info_id = $1 ORDER BY created_at DESC LIMIT 1',
+      'SELECT * FROM freee_api_tokens WHERE user_info_id = $1 ORDER BY created_at DESC LIMIT 1',
       [userInfoId]
     );
 
@@ -39,7 +39,7 @@ class CredentialsManager {
       refreshToken: decrypt(tokenInfo.refresh_token),
       accessToken: decrypt(tokenInfo.access_token),
       accessTokenExpiresIn: tokenInfo.access_token_expires_in,
-      tokenCreatedAt: new Date(tokenInfo.created_at_utc) // UTC時刻を明示的に使用
+      tokenCreatedAt: tokenInfo.created_at // timestamptz型はpgが正しくJSDateに変換する
     };
   }
 
