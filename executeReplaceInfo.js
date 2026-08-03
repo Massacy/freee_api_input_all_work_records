@@ -33,9 +33,5 @@ module.exports = async function executeReplaceInfo(date, accessToken, employeeId
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
-  const result = await response.json();
-  const seg = result.work_record_segments?.[0];
-  if (seg) {
-    console.log(`  ↳ ${seg.clock_in_at?.slice(11, 16)}〜${seg.clock_out_at?.slice(11, 16)}`);
-  }
+  await response.json();
 };
