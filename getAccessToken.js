@@ -27,8 +27,6 @@ module.exports = async function getAccessToken(userInfoId) {
     };
 
     console.log('Sending refresh token request...');
-    console.log('Client ID:', credentials.clientId);
-    console.log('Refresh Token (first 20 chars):', credentials.refreshToken.substring(0, 20) + '...');
 
     const options = {
       method: "POST",

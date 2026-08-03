@@ -7,8 +7,6 @@ class CredentialsManager {
       throw new Error('userInfoId is required');
     }
 
-    console.log(`Getting credentials for userInfoId: ${userInfoId}`);
-
     // freee_api_user_infoから基本情報を取得
     const userInfoResult = await query(
       'SELECT * FROM freee_api_user_info WHERE id = $1',
@@ -20,7 +18,6 @@ class CredentialsManager {
     }
 
     const userInfo = userInfoResult.rows[0];
-    console.log(`Found userInfo for user: ${userInfo.username}`);
 
     // freee_api_tokensから最新のトークン情報を取得
     const tokenResult = await query(
@@ -33,8 +30,6 @@ class CredentialsManager {
     }
 
     const tokenInfo = tokenResult.rows[0];
-    console.log(`Found token info created at: ${tokenInfo.created_at}`);
-    console.log(`UTC time: ${tokenInfo.created_at_utc}`);
 
     return {
       clientId: userInfo.client_id,

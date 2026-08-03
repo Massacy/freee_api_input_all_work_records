@@ -1,15 +1,11 @@
-const credentialsManager = require('./credentialsManager');
-
-module.exports = async function executeReplaceInfo(date, accessToken, myInfoId) {
-  if (!myInfoId) {
-    throw new Error('myInfoId is required');
+module.exports = async function executeReplaceInfo(date, accessToken, employeeId, companyId) {
+  if (!employeeId || !companyId) {
+    throw new Error('employeeId and companyId are required');
   }
-  
-  const credentials = await credentialsManager.getCredentials(myInfoId);
-  
-  const url = `https://api.freee.co.jp/hr/api/v1/employees/${credentials.employeeId}/work_records/${date}`;
+
+  const url = `https://api.freee.co.jp/hr/api/v1/employees/${employeeId}/work_records/${date}`;
   const body = {
-    company_id: credentials.companyId,
+    company_id: companyId,
     break_records: [
       {
         clock_in_at: `${date} 12:00:00`,
@@ -38,10 +34,8 @@ module.exports = async function executeReplaceInfo(date, accessToken, myInfoId) 
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   const result = await response.json();
-  const message = {
-    日付: result.date,
-    勤務時間: result.work_record_segments,
-    休憩時間: result.break_records,
-  };
-  console.log(message);
+  const seg = result.work_record_segments?.[0];
+  if (seg) {
+    console.log(`  ↳ ${seg.clock_in_at?.slice(11, 16)}〜${seg.clock_out_at?.slice(11, 16)}`);
+  }
 };

@@ -47,18 +47,19 @@ const credentialsManager = require('./credentialsManager');
     
     if (!isExec) return;
 
-    // 6. アクセストークンを取得
+    // 6. アクセストークンと認証情報を取得（ループ前に1回だけ）
     console.log("\nアクセストークンを取得中...");
     const accessToken = await getAccessToken(myInfoId);
-    
+    const credentials = await credentialsManager.getCredentials(myInfoId);
+
     console.log("勤務時間の入力を開始します...");
     let processedCount = 0;
-    
+
     for (const date of finalDates) {
       try {
         processedCount++;
         console.log(`\n[${processedCount}/${finalDates.length}] ${date} の勤務時間を入力中...`);
-        await executeReplaceInfo(date, accessToken, myInfoId);
+        await executeReplaceInfo(date, accessToken, credentials.employeeId, credentials.companyId);
         console.log(`✅ ${date} の処理が完了しました`);
       } catch (error) {
         console.error(`❌ ${date} の処理でエラーが発生しました:`, error.message);
