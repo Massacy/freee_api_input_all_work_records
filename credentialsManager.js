@@ -37,9 +37,10 @@ class CredentialsManager {
     const tokenInfo = tokenResult.rows[0];
 
     const tokenCreatedAtEpoch = Number(tokenInfo.created_at_epoch);
-    const tokenCreatedAt = Number.isFinite(tokenCreatedAtEpoch)
-      ? new Date(tokenCreatedAtEpoch * 1000)
-      : tokenInfo.created_at; // フォールバック（既存挙動）
+    if (!Number.isFinite(tokenCreatedAtEpoch)) {
+      throw new Error(`Invalid token created_at for userInfoId ${userInfoId}`);
+    }
+    const tokenCreatedAt = new Date(tokenCreatedAtEpoch * 1000);
 
     return {
       clientId: userInfo.client_id,
