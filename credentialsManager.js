@@ -21,7 +21,12 @@ class CredentialsManager {
 
     // freee_api_tokensから最新のトークン情報を取得
     const tokenResult = await query(
-      'SELECT * FROM freee_api_tokens WHERE user_info_id = $1 ORDER BY created_at DESC LIMIT 1',
+      `SELECT *,
+              EXTRACT(EPOCH FROM created_at) AS created_at_epoch
+       FROM freee_api_tokens
+       WHERE user_info_id = $1
+       ORDER BY created_at DESC
+       LIMIT 1`,
       [userInfoId]
     );
 
@@ -31,6 +36,11 @@ class CredentialsManager {
 
     const tokenInfo = tokenResult.rows[0];
 
+    const tokenCreatedAtEpoch = Number(tokenInfo.created_at_epoch);
+    const tokenCreatedAt = Number.isFinite(tokenCreatedAtEpoch)
+      ? new Date(tokenCreatedAtEpoch * 1000)
+      : tokenInfo.created_at; // フォールバック（既存挙動）
+
     return {
       clientId: userInfo.client_id,
       clientSecret: decrypt(userInfo.client_secret),
@@ -39,7 +49,7 @@ class CredentialsManager {
       refreshToken: decrypt(tokenInfo.refresh_token),
       accessToken: decrypt(tokenInfo.access_token),
       accessTokenExpiresIn: tokenInfo.access_token_expires_in,
-      tokenCreatedAt: tokenInfo.created_at // timestamptz型はpgが正しくJSDateに変換する
+      tokenCreatedAt
     };
   }
 
