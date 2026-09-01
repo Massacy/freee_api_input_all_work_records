@@ -39,7 +39,7 @@ class CredentialsManager {
       refreshToken: decrypt(tokenInfo.refresh_token),
       accessToken: decrypt(tokenInfo.access_token),
       accessTokenExpiresIn: tokenInfo.access_token_expires_in,
-      tokenCreatedAt: tokenInfo.created_at // timestamptz型はpgが正しくJSDateに変換する
+      tokenCreatedAt: tokenInfo.created_at // db.jsの型パーサー設定によりUTCとして正しくDate化される
     };
   }
 

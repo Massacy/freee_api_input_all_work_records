@@ -114,6 +114,15 @@ npm start
 | access_token_expires_in | INTEGER | アクセストークンの有効期限（秒） |
 | created_at | TIMESTAMP | 作成日時 |
 
+### 日時（TIMESTAMP列）の扱いについて
+
+`created_at`/`updated_at` はいずれもタイムゾーンなしの`TIMESTAMP`型で、常に`NOW()`/`CURRENT_TIMESTAMP`によりUTC基準で書き込まれる前提です。`db.js`側で
+
+- 接続時にセッションの`timezone`を`UTC`に固定
+- `pg`の型パーサーを上書きし、`TIMESTAMP`型の値を常にUTCとして解釈してDate化
+
+する設定を入れているため、アプリコードから`created_at`等をそのまま読んでも実行環境（開発者のマシン、Raycast経由の実行など）のローカルタイムゾーンに関係なく正しい時刻になります。**個々のクエリ側で`AT TIME ZONE`や`EXTRACT(EPOCH FROM ...)`のような変換を追加する必要はありません**（過去にこの前提を誤解して`db.js`側の対処を外した結果、時刻が数時間ズレるバグが再発したことがあります）。
+
 ## トラブルシューティング
 
 ### データベース接続エラー

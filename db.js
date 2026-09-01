@@ -1,6 +1,16 @@
 require('dotenv').config();
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 const crypto = require('crypto');
+
+// このDBの created_at/updated_at は TIMESTAMP（タイムゾーンなし）で、
+// 常にセッションが UTC の状態で NOW()/CURRENT_TIMESTAMP により書き込まれる前提。
+// pgのデフォルト挙動では、この型の値を読み込む際にNode.jsプロセスの
+// ローカルタイムゾーンとして解釈してDateを組み立ててしまうため、
+// 実行環境のタイムゾーン（開発者のマシン、Raycast経由の実行など）によって
+// 数時間単位で時刻がズレるバグが起きる（過去に一度発生・修正・再発している）。
+// ここでtimestamp(OID 1114)の型パーサーを上書きし、常にUTCとして
+// 解釈させることで、どのクエリ・どの実行環境でも一貫した結果にする。
+types.setTypeParser(types.builtins.TIMESTAMP, (value) => (value === null ? null : new Date(`${value}Z`)));
 
 // 環境変数の検証
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -13,6 +23,10 @@ if (DATABASE_URL) {
   // DATABASE_URLを使用した接続
   dbConfig = {
     connectionString: DATABASE_URL,
+    // セッションのtimezoneをUTCに固定する。DBプロバイダ側のデフォルト設定に
+    // 依存せず、created_at等のTIMESTAMP(タイムゾーンなし)列への書き込み・
+    // 読み込みが常にUTC基準で一貫するようにするため。
+    options: '-c timezone=UTC',
     ssl: {
       rejectUnauthorized: false // Neonの場合は通常これが必要
     }
@@ -36,6 +50,8 @@ if (DATABASE_URL) {
     database: DB_NAME,
     user: DB_USER,
     password: DB_PASSWORD,
+    // セッションのtimezoneをUTCに固定する（理由は上記のDATABASE_URL分岐と同じ）
+    options: '-c timezone=UTC',
     ssl: DB_SSL === 'require' ? { rejectUnauthorized: false } : false
   };
 }
